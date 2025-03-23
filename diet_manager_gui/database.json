@@ -1,0 +1,47 @@
+{
+  "users": {
+    "paarth": {
+      "username": "paarth",
+      "password": "12345",
+      "profile": {
+        "gender": "Male",
+        "height_cm": 190.0,
+        "age": 23,
+        "calorie_method": "HarrisBenedict",
+        "weight_kg": 0.0,
+        "activity_level": "Light"
+      }
+    }
+  },
+  "basic_foods": {
+    "Milk": {
+      "id": "Milk",
+      "name": "Milk",
+      "keywords": [
+        "Milk"
+      ],
+      "calories_per_serving": 40.0
+    }
+  },
+  "composite_foods": {},
+  "food_logs": {
+    "": [
+      {
+        "date": "2025-03-23",
+        "food_id": "",
+        "servings": 1.0
+      },
+      {
+        "date": "2025-03-23",
+        "food_id": "Milk",
+        "servings": 2.0
+      },
+      {
+        "date": "2025-03-23",
+        "food_id": "Milk",
+        "servings": 2.0
+      }
+    ]
+  },
+  "current_user": ""
+}
