@@ -28,6 +28,7 @@ pub struct FoodLogEntry {
     pub date: String, // ISO 8601 date format (e.g., "2023-10-01")
     pub food_id: String,
     pub servings: f32,
+    pub user_id: String, // Add user_id to associate with a user
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -79,6 +80,7 @@ impl UserProfile {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
+    pub user_id: String,
     pub username: String,
     pub password: String, // In a real application, this should be hashed
     pub profile: UserProfile,

@@ -1,6 +1,7 @@
 use eframe::egui;
 use crate::models::{Database, Gender, ActivityLevel, CalorieCalculationMethod};
 use crate::app_state::AppState;
+use uuid::Uuid;
 
 pub struct UpdateProfileScreen;
 
@@ -76,6 +77,13 @@ impl UpdateProfileScreen {
         // Back button
         if ui.button("Back").clicked() {
             *current_state = AppState::Home;
+        }
+
+        // Save button
+        if ui.button("Save").clicked() {
+            // Save changes to the database
+            // This might involve writing back to a persistent storage if needed
+            println!("Profile updated for user: {}", db.current_user);
         }
     }
 }

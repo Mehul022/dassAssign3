@@ -1,9 +1,7 @@
 use eframe::egui;
 use chrono::NaiveDate;
-use crate::models::{Database, UserProfile};
+use crate::models::{Database, FoodLogEntry};
 use crate::app_state::AppState;
-use crate::models::Gender;
-use crate::models::ActivityLevel;
 
 pub struct ViewDailyLogScreen {
     selected_date: NaiveDate,
@@ -19,6 +17,7 @@ impl ViewDailyLogScreen {
     pub fn render(&mut self, ui: &mut egui::Ui, db: &mut Database, current_state: &mut AppState) {
         ui.heading("Daily Log");
 
+        // Date selection with bounds checking
         ui.horizontal(|ui| {
             ui.label("Select Date:");
             if ui.button("◄").clicked() {
@@ -26,78 +25,110 @@ impl ViewDailyLogScreen {
             }
             ui.label(self.selected_date.format("%Y-%m-%d").to_string());
             if ui.button("►").clicked() {
-                self.selected_date += chrono::Duration::days(1);
+                let tomorrow = self.selected_date.succ_opt().unwrap_or(self.selected_date);
+                if tomorrow <= chrono::Local::now().date_naive() {
+                    self.selected_date = tomorrow;
+                }
             }
         });
 
-        // Calculate total calories for the selected date
+        // Calculate nutrition data for the selected date
         let selected_date_str = self.selected_date.format("%Y-%m-%d").to_string();
-        let total_calories: f32 = db.food_logs
-            .get(&selected_date_str)
-            .map_or(0.0, |entries| {
+        let (total_calories, calories_goal, calories_remaining) = self.calculate_daily_nutrition(db, &db.current_user, &selected_date_str);
+
+        // Display nutrition summary
+        ui.separator();
+        ui.heading("Nutrition Summary");
+        ui.label(format!("Calories Consumed: {:.1}", total_calories));
+        ui.label(format!("Daily Goal: {:.1}", calories_goal));
+        
+        if calories_remaining >= 0.0 {
+            ui.label(egui::RichText::new(format!("Remaining: {:.1}", calories_remaining))
+                .color(egui::Color32::GREEN));
+        } else {
+            ui.label(egui::RichText::new(format!("Over by: {:.1}", calories_remaining.abs()))
+                .color(egui::Color32::RED));
+        }
+
+        // Display food log entries
+        ui.separator();
+        ui.heading("Food Entries");
+        
+        // Collect entries first to avoid borrowing issues
+        let entries: Vec<FoodLogEntry> = db.food_logs
+            .get(&db.current_user)
+            .map_or(Vec::new(), |entries| {
                 entries.iter()
-                    .map(|entry| db.get_food_calories(&entry.food_id).unwrap_or(0.0) * entry.servings)
-                    .sum()
+                    .filter(|entry| entry.date == selected_date_str)
+                    .cloned()
+                    .collect()
             });
 
-        // Calculate daily calorie goal
-        let calories_goal = if let Some(user) = db.users.values().next() {
-            self.calculate_daily_goal(&user.profile)
+        if entries.is_empty() {
+            ui.label("No entries for this date.");
         } else {
-            0.0
-        };
-
-        let calories_remaining = calories_goal - total_calories;
-
-        // Display calorie information
-        ui.label(format!("Calories Consumed: {:.1}", total_calories));
-        ui.label(format!("Calories Goal: {:.1}", calories_goal));
-        ui.label(format!("Calories Remaining: {:.1}", calories_remaining));
-
-        // Display log entries for the selected date
-        if let Some(entries) = db.food_logs.get(&selected_date_str) {
-            let mut entries_to_delete = Vec::new();
-
             for (i, entry) in entries.iter().enumerate() {
+                let food_name = db.basic_foods.get(&entry.food_id)
+                    .map(|f| f.name.clone())
+                    .or_else(|| db.composite_foods.get(&entry.food_id).map(|f| f.name.clone()))
+                    .unwrap_or_else(|| entry.food_id.clone());
+
+                let calories = db.get_food_calories(&entry.food_id).unwrap_or(0.0) * entry.servings;
+                
                 ui.horizontal(|ui| {
-                    ui.label(format!("{}. {} ({} servings)", i + 1, entry.food_id, entry.servings));
-                    if ui.button("Delete").clicked() {
-                        entries_to_delete.push(i);
+                    ui.label(format!("{}. {} ({} servings) - {:.1} kcal", 
+                        i + 1, 
+                        food_name,
+                        entry.servings,
+                        calories
+                    ));
+                    
+                    if ui.button("❌").clicked() {
+                        if let Some(entries) = db.food_logs.get_mut(&db.current_user) {
+                            if let Some(pos) = entries.iter().position(|e| 
+                                e.date == entry.date && 
+                                e.food_id == entry.food_id && 
+                                e.servings == entry.servings
+                            ) {
+                                entries.remove(pos);
+                            }
+                        }
                     }
                 });
             }
-
-            // Delete entries after the loop
-            if !entries_to_delete.is_empty() {
-                let entries = db.food_logs.get_mut(&selected_date_str).unwrap();
-                for &index in entries_to_delete.iter().rev() {
-                    entries.remove(index);
-                }
-            }
-        } else {
-            ui.label("No entries for this date.");
         }
 
+        // Navigation button
+        ui.separator();
         if ui.button("Back to Home").clicked() {
             *current_state = AppState::Home;
         }
     }
 
-    fn calculate_daily_goal(&self, profile: &UserProfile) -> f32 {
-        // Example calculation using the Harris-Benedict equation
-        let bmr = match profile.gender {
-            Gender::Male => 88.362 + (13.397 * profile.weight_kg) + (4.799 * profile.height_cm) - (5.677 * profile.age as f32),
-            Gender::Female => 447.593 + (9.247 * profile.weight_kg) + (3.098 * profile.height_cm) - (4.330 * profile.age as f32),
-        };
+    fn calculate_daily_nutrition(
+        &self,
+        db: &Database,
+        user_id: &str,
+        date: &str
+    ) -> (f32, f32, f32) {
+        // Calculate total calories consumed
+        let total_calories = db.food_logs
+            .get(user_id)
+            .map_or(0.0, |entries| {
+                entries.iter()
+                    .filter(|entry| entry.date == date)
+                    .map(|entry| db.get_food_calories(&entry.food_id).unwrap_or(0.0) * entry.servings)
+                    .sum()
+            });
 
-        let activity_multiplier = match profile.activity_level {
-            ActivityLevel::Sedentary => 1.2,
-            ActivityLevel::Light => 1.375,
-            ActivityLevel::Moderate => 1.55,
-            ActivityLevel::VeryActive => 1.725,
-            ActivityLevel::ExtraActive => 1.9,
-        };
+        // Get daily calorie goal from user profile
+        let calories_goal = db.users.values()
+            .find(|u| u.user_id == user_id)
+            .map(|user| user.profile.calculate_target_calories())
+            .unwrap_or(0.0);
 
-        bmr * activity_multiplier
+        let calories_remaining = calories_goal - total_calories;
+
+        (total_calories, calories_goal, calories_remaining)
     }
 }

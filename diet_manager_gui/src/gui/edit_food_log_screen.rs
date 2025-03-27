@@ -28,11 +28,11 @@ impl EditFoodLogScreen {
         // Display food entries for the selected date
         if let Some(entries) = db.food_logs.get_mut(&db.current_user) { // Use get_mut here
             let mut to_remove = Vec::new();
-            for (index, entry) in entries.iter().enumerate() {
+            for (index, entry) in entries.iter_mut().enumerate() {
                 if entry.date == self.selected_date {
                     ui.horizontal(|ui| {
                         ui.label(&entry.food_id);
-                        ui.label(format!("Servings: {}", entry.servings));
+                        ui.add(egui::Slider::new(&mut entry.servings, 0.1..=10.0).text("Servings"));
                         if ui.button("Delete").clicked() {
                             to_remove.push(index);
                         }

@@ -2,6 +2,8 @@
 use eframe::egui;
 use crate::models::{Database, User, UserProfile, Gender, ActivityLevel, CalorieCalculationMethod};
 use crate::app_state::AppState;
+use uuid::Uuid;
+use std::fs;
 
 pub struct RegisterScreen {
     username: String,
@@ -9,6 +11,7 @@ pub struct RegisterScreen {
     gender: Gender,
     height_cm: String,
     age: String,
+    weight_kg: String, // Added weight field
     activity_level: ActivityLevel,
     calorie_method: CalorieCalculationMethod,
     error_message: Option<String>,
@@ -22,6 +25,7 @@ impl RegisterScreen {
             gender: Gender::Male,
             height_cm: String::new(),
             age: String::new(),
+            weight_kg: String::new(), // Initialize weight field
             activity_level: ActivityLevel::Sedentary,
             calorie_method: CalorieCalculationMethod::HarrisBenedict,
             error_message: None,
@@ -62,6 +66,11 @@ impl RegisterScreen {
         });
 
         ui.horizontal(|ui| {
+            ui.label("Weight (kg):"); // Added weight input
+            ui.text_edit_singleline(&mut self.weight_kg);
+        });
+
+        ui.horizontal(|ui| {
             ui.label("Activity Level:");
             ui.radio_value(&mut self.activity_level, ActivityLevel::Sedentary, "Sedentary");
             ui.radio_value(&mut self.activity_level, ActivityLevel::Light, "Light");
@@ -84,26 +93,38 @@ impl RegisterScreen {
             } else {
                 let height_cm = self.height_cm.parse().unwrap_or(0.0);
                 let age = self.age.parse().unwrap_or(0);
+                let weight_kg = self.weight_kg.parse().unwrap_or(0.0);
 
-                if height_cm <= 0.0 || age <= 0 {
-                    self.error_message = Some("Invalid height or age.".to_string());
+                if height_cm <= 0.0 || age <= 0 || weight_kg <= 0.0 {
+                    self.error_message = Some("Invalid height, age, or weight.".to_string());
                 } else {
+                    let user_id = Uuid::new_v4().to_string();
                     let profile = UserProfile {
                         gender: self.gender.clone(),
                         height_cm,
                         age,
                         calorie_method: self.calorie_method.clone(),
-                        weight_kg: 0.0, // Default weight
+                        weight_kg,
                         activity_level: self.activity_level.clone(),
                     };
 
                     let user = User {
+                        user_id: user_id.clone(),
                         username: self.username.clone(),
                         password: self.password.clone(),
                         profile,
                     };
 
+                    // Insert new user and set as current user
                     db.users.insert(self.username.clone(), user);
+                    db.current_user = user_id;
+                    
+                    // Save the database to JSON file
+                    if let Err(e) = self.save_database(db) {
+                        self.error_message = Some(format!("Failed to save registration: {}", e));
+                        return;
+                    }
+                    
                     *current_state = AppState::Home;
                 }
             }
@@ -112,5 +133,11 @@ impl RegisterScreen {
         if ui.button("Back to Login").clicked() {
             *current_state = AppState::Login;
         }
+    }
+
+    fn save_database(&self, db: &Database) -> Result<(), Box<dyn std::error::Error>> {
+        let json = serde_json::to_string_pretty(db)?;
+        fs::write("database.json", json)?;
+        Ok(())
     }
 }

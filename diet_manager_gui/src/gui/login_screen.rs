@@ -2,6 +2,7 @@
 use eframe::egui;
 use crate::models::Database;
 use crate::app_state::AppState;
+use std::fs;
 
 pub struct LoginScreen {
     username: String,
@@ -18,7 +19,7 @@ impl LoginScreen {
         }
     }
 
-    pub fn render(&mut self, ui: &mut egui::Ui, db: &Database, current_state: &mut AppState) {
+    pub fn render(&mut self, ui: &mut egui::Ui, db: &mut Database, current_state: &mut AppState) {
         ui.heading("Login");
 
         if let Some(error) = &self.error_message {
@@ -38,6 +39,15 @@ impl LoginScreen {
         if ui.button("Login").clicked() {
             if let Some(user) = db.users.get(&self.username) {
                 if user.password == self.password {
+                    // Store user_id instead of username
+                    db.current_user = user.user_id.clone();
+                    
+                    // Save the database to JSON file
+                    if let Err(e) = self.save_database(db) {
+                        self.error_message = Some(format!("Failed to save login state: {}", e));
+                        return;
+                    }
+                    
                     *current_state = AppState::Home;
                     self.error_message = None;
                 } else {
@@ -51,5 +61,11 @@ impl LoginScreen {
         if ui.button("Register").clicked() {
             *current_state = AppState::Register;
         }
+    }
+
+    fn save_database(&self, db: &Database) -> Result<(), Box<dyn std::error::Error>> {
+        let json = serde_json::to_string_pretty(db)?;
+        fs::write("database.json", json)?;
+        Ok(())
     }
 }

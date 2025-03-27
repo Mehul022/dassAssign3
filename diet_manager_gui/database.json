@@ -1,15 +1,42 @@
 {
   "users": {
     "paarth": {
+      "user_id": "bd3382a0-a16a-4149-8794-289ad5e8ef35",
       "username": "paarth",
       "password": "12345",
       "profile": {
         "gender": "Male",
-        "height_cm": 190.0,
-        "age": 23,
+        "height_cm": 169.0,
+        "age": 45,
         "calorie_method": "HarrisBenedict",
         "weight_kg": 0.0,
-        "activity_level": "Light"
+        "activity_level": "Moderate"
+      }
+    },
+    "mehul": {
+      "user_id": "87e08b2e-d992-4ac6-bb82-1251ac73295a",
+      "username": "mehul",
+      "password": "12345",
+      "profile": {
+        "gender": "Male",
+        "height_cm": 169.0,
+        "age": 21,
+        "calorie_method": "HarrisBenedict",
+        "weight_kg": 0.0,
+        "activity_level": "Moderate"
+      }
+    },
+    "krishna": {
+      "user_id": "fbc01e87-e497-45ca-9d1d-8b1796acedca",
+      "username": "krishna",
+      "password": "12345",
+      "profile": {
+        "gender": "Male",
+        "height_cm": 167.0,
+        "age": 45,
+        "calorie_method": "HarrisBenedict",
+        "weight_kg": 78.0,
+        "activity_level": "Moderate"
       }
     }
   },
@@ -20,28 +47,19 @@
       "keywords": [
         "Milk"
       ],
-      "calories_per_serving": 40.0
+      "calories_per_serving": 45.0
     }
   },
   "composite_foods": {},
   "food_logs": {
-    "": [
+    "87e08b2e-d992-4ac6-bb82-1251ac73295a": [
       {
-        "date": "2025-03-23",
-        "food_id": "",
-        "servings": 1.0
-      },
-      {
-        "date": "2025-03-23",
+        "date": "2025-03-27",
         "food_id": "Milk",
-        "servings": 2.0
-      },
-      {
-        "date": "2025-03-23",
-        "food_id": "Milk",
-        "servings": 2.0
+        "servings": 5.0,
+        "user_id": "87e08b2e-d992-4ac6-bb82-1251ac73295a"
       }
     ]
   },
-  "current_user": ""
+  "current_user": "87e08b2e-d992-4ac6-bb82-1251ac73295a"
 }

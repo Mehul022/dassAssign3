@@ -51,7 +51,7 @@ impl eframe::App for DietManagerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             match self.current_state {
-                AppState::Login => self.login_screen.render(ui, &self.db, &mut self.current_state),
+                AppState::Login => self.login_screen.render(ui, &mut self.db, &mut self.current_state),
                 AppState::Register => self.register_screen.render(ui, &mut self.db, &mut self.current_state),
                 AppState::Home => self.home_screen.render(ui, &mut self.db, &mut self.current_state, &mut self.undo_manager),
                 AppState::AddBasicFood => self.add_basic_food_screen.render(ui, &mut self.db, &mut self.current_state),

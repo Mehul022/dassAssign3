@@ -32,6 +32,15 @@ impl AddFoodToLogScreen {
         // Date selection
         ui.label("Select Date:");
         ui.text_edit_singleline(&mut self.selected_date);
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        if self.selected_date > today {
+            ui.label(egui::RichText::new("Cannot select a future date.").color(egui::Color32::RED));
+        }
+
+        // Display selected item
+        if !self.selected_food_id.is_empty() {
+            ui.label(format!("Selected Food: {}", self.selected_food_id));
+        }
 
         // Keyword filtering
         ui.label("Filter by Keywords:");
@@ -62,16 +71,23 @@ impl AddFoodToLogScreen {
 
         // Add to log button
         if ui.button("Add to Log").clicked() {
-            let entry = FoodLogEntry {
-                date: self.selected_date.clone(),
-                food_id: self.selected_food_id.clone(),
-                servings: self.servings,
-            };
-            db.food_logs
-                .entry(db.current_user.clone())
-                .or_insert_with(Vec::new)
-                .push(entry);
-            *current_state = AppState::Home; // Return to home screen
+            if self.selected_food_id.is_empty() || self.servings <= 0.0 {
+                ui.label(egui::RichText::new("Please select a food and enter a valid serving size.").color(egui::Color32::RED));
+            } else if self.selected_date > today {
+                ui.label(egui::RichText::new("Cannot add to a future date.").color(egui::Color32::RED));
+            } else {
+                let entry = FoodLogEntry {
+                    date: self.selected_date.clone(),
+                    food_id: self.selected_food_id.clone(),
+                    servings: self.servings,
+                    user_id: db.current_user.clone(), // Add user_id to entry
+                };
+                db.food_logs
+                    .entry(db.current_user.clone())
+                    .or_insert_with(Vec::new)
+                    .push(entry);
+                *current_state = AppState::Home; // Return to home screen
+            }
         }
     }
 
